@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交渉BATNA破談価格計算機</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+<div class="max-w-2xl mx-auto p-4">
+  <h1 class="text-2xl font-bold text-center text-cyan-400 mt-6 mb-1">交渉BATNA破談価格計算機</h1>
+  <p class="text-center text-gray-400 mb-6 text-sm">BATNA・ZOPA・交渉戦術タイプを自動判定</p>
+
+  <div class="bg-slate-800 rounded-xl p-5 mb-5">
+    <h2 class="font-semibold text-cyan-300 mb-4">📋 交渉パラメータ入力</h2>
+
+    <div class="mb-5">
+      <label for="current-offer" class="block text-sm text-gray-300 mb-1">現在の相手オファー（万円）: <span id="offer-val" class="text-cyan-300 font-bold">100</span>万円</label>
+      <input id="current-offer" type="range" min="10" max="1000" value="100" step="5" aria-label="現在の相手オファー" class="w-full accent-cyan-400">
+      <div class="flex justify-between text-xs text-gray-500 mt-1"><span>10万</span><span>1000万</span></div>
+    </div>
+
+    <div class="mb-5">
+      <label for="batna-value" class="block text-sm text-gray-300 mb-1">あなたのBATNA価値（万円）: <span id="batna-val" class="text-green-300 font-bold">80</span>万円</label>
+      <input id="batna-value" type="range" min="10" max="1000" value="80" step="5" aria-label="BATNAの価値" class="w-full accent-green-400">
+      <div class="text-xs text-gray-500 mt-1">BATNA = Best Alternative To a Negotiated Agreement（交渉決裂時の最良代替案）</div>
+    </div>
+
+    <div class="mb-5">
+      <label for="their-batna" class="block text-sm text-gray-300 mb-1">相手方の推定BATNA（万円）: <span id="their-batna-val" class="text-yellow-300 font-bold">90</span>万円</label>
+      <input id="their-batna" type="range" min="10" max="1000" value="90" step="5" aria-label="相手方の推定BATNA" class="w-full accent-yellow-400">
+      <div class="text-xs text-gray-500 mt-1">相手が交渉決裂した場合に得られる最良の代替値（推定）</div>
+    </div>
+
+    <div class="mb-5">
+      <label for="aspiration" class="block text-sm text-gray-300 mb-1">あなたの希望価格（万円）: <span id="aspiration-val" class="text-pink-300 font-bold">120</span>万円</label>
+      <input id="aspiration" type="range" min="10" max="1000" value="120" step="5" aria-label="あなたの希望価格" class="w-full accent-pink-400">
+    </div>
+
+    <div class="mb-5">
+      <label for="deal-importance" class="block text-sm text-gray-300 mb-1">この取引の重要度: <span id="importance-val" class="text-orange-300 font-bold">5</span>/10</label>
+      <input id="deal-importance" type="range" min="1" max="10" value="5" aria-label="取引の重要度" class="w-full accent-orange-400">
+    </div>
+
+    <button id="calc-btn" aria-label="BATNA分析を実行" class="w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 rounded-xl transition-colors">🔍 BATNA分析を実行</button>
+  </div>
+
+  <div id="result-panel" class="hidden space-y-4 mb-5">
+    <div class="bg-slate-800 rounded-xl p-5">
+      <h3 class="font-bold text-cyan-300 mb-4">📊 分析結果</h3>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="bg-slate-700 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-400 mb-1">あなたのBATNA</div>
+          <div id="res-batna" class="text-lg font-bold text-green-400"></div>
+        </div>
+        <div class="bg-slate-700 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-400 mb-1">破談価格（ウォークアウェイ）</div>
+          <div id="res-walkaway" class="text-lg font-bold text-red-400"></div>
+        </div>
+        <div class="bg-slate-700 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-400 mb-1">ZOPAゾーン</div>
+          <div id="res-zopa" class="text-sm font-bold text-yellow-300"></div>
+        </div>
+        <div class="bg-slate-700 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-400 mb-1">交渉戦術タイプ</div>
+          <div id="res-tactic" class="text-sm font-bold text-pink-300"></div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="text-sm text-gray-400 mb-2">ZOPAビジュアライザ</div>
+        <div class="relative h-8 bg-slate-700 rounded-full overflow-hidden">
+          <div id="zopa-bar" class="absolute h-full bg-cyan-600 opacity-70 rounded-full transition-all duration-500"></div>
+          <div id="offer-marker" class="absolute top-0 h-full w-1 bg-white opacity-80"></div>
+          <div id="batna-marker" class="absolute top-0 h-full w-1 bg-green-400"></div>
+          <div id="aspiration-marker" class="absolute top-0 h-full w-1 bg-pink-400"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <span>10万</span>
+          <span class="text-white">■ オファー</span>
+          <span class="text-green-400">■ BATNA</span>
+          <span class="text-pink-400">■ 希望値</span>
+          <span>1000万</span>
+        </div>
+      </div>
+
+      <div id="verdict" class="rounded-lg p-4 text-sm"></div>
+    </div>
+
+    <div class="bg-slate-800 rounded-xl p-5">
+      <h3 class="font-bold text-cyan-300 mb-3">💡 交渉戦術アドバイス</h3>
+      <div id="tactics-advice" class="text-sm text-gray-200 space-y-2"></div>
+    </div>
+  </div>
+
+  <div class="bg-slate-800 rounded-xl p-4 text-xs text-gray-400">
+    <strong class="text-gray-300">用語解説</strong><br>
+    <span class="text-green-400">BATNA</span>: 交渉が決裂した場合の最善の代替案 |
+    <span class="text-yellow-400">ZOPA</span>: Zone of Possible Agreement（合意可能ゾーン）|
+    <span class="text-cyan-400">統合型交渉</span>: Win-Win型 |
+    <span class="text-red-400">分配型交渉</span>: Win-Lose型（パイの分配）
+  </div>
+</div>
+
+<script>
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+const KEY = 'app_negotiation-batna-walkaway-price';
+
+function bindSlider(id, valId) {
+  const slider = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  slider.addEventListener('input', () => { valEl.textContent = slider.value; });
+}
+bindSlider('current-offer', 'offer-val');
+bindSlider('batna-value', 'batna-val');
+bindSlider('their-batna', 'their-batna-val');
+bindSlider('aspiration', 'aspiration-val');
+bindSlider('deal-importance', 'importance-val');
+
+document.getElementById('calc-btn').addEventListener('click', () => {
+  const offer = parseInt(document.getElementById('current-offer').value);
+  const myBatna = parseInt(document.getElementById('batna-value').value);
+  const theirBatna = parseInt(document.getElementById('their-batna').value);
+  const aspiration = parseInt(document.getElementById('aspiration').value);
+  const importance = parseInt(document.getElementById('deal-importance').value);
+
+  const walkaway = myBatna;
+  const zopaLow = Math.min(myBatna, theirBatna);
+  const zopaHigh = Math.max(myBatna, theirBatna);
+  const hasZopa = zopaLow !== zopaHigh;
+  const inZopa = offer >= zopaLow && offer <= zopaHigh;
+  const bargainPower = ((offer - myBatna) / (aspiration - myBatna + 1)) * 100;
+
+  const isBuyerSide = aspiration > offer;
+  const tacticType = importance >= 7 ? '統合型（Win-Win優先）' : (offer < walkaway ? '分配型（強硬）' : '統合型（協調推奨）');
+
+  document.getElementById('result-panel').classList.remove('hidden');
+  document.getElementById('res-batna').textContent = myBatna + '万円';
+  document.getElementById('res-walkaway').textContent = walkaway + '万円';
+  document.getElementById('res-zopa').textContent = hasZopa ? (zopaLow + '〜' + zopaHigh + '万円') : '不明（情報不足）';
+  document.getElementById('res-tactic').textContent = tacticType;
+
+  const scale = 990;
+  const pOffer = ((offer - 10) / scale) * 100;
+  const pBatna = ((myBatna - 10) / scale) * 100;
+  const pAsp = ((aspiration - 10) / scale) * 100;
+  const pZopaL = ((zopaLow - 10) / scale) * 100;
+  const pZopaW = ((zopaHigh - zopaLow) / scale) * 100;
+
+  document.getElementById('zopa-bar').style.left = pZopaL + '%';
+  document.getElementById('zopa-bar').style.width = Math.max(pZopaW, 2) + '%';
+  document.getElementById('offer-marker').style.left = Math.min(Math.max(pOffer, 0), 98) + '%';
+  document.getElementById('batna-marker').style.left = Math.min(Math.max(pBatna, 0), 98) + '%';
+  document.getElementById('aspiration-marker').style.left = Math.min(Math.max(pAsp, 0), 98) + '%';
+
+  const verdictEl = document.getElementById('verdict');
+  if (offer < walkaway) {
+    verdictEl.className = 'rounded-lg p-4 text-sm bg-red-900 border border-red-500';
+    verdictEl.textContent = '⚠️ オファーがあなたのBATNAを下回っています。このオファーを受け入れると代替案よりも悪い結果になります。交渉を打ち切るか、大幅な条件改善を要求してください。';
+  } else if (inZopa) {
+    verdictEl.className = 'rounded-lg p-4 text-sm bg-green-900 border border-green-500';
+    verdictEl.textContent = '✅ オファーはZOPA内にあります。合意可能な範囲です。ただし希望価格（' + aspiration + '万円）に向けて交渉を続けることで、より良い条件を引き出せる可能性があります。';
+  } else {
+    verdictEl.className = 'rounded-lg p-4 text-sm bg-yellow-900 border border-yellow-600';
+    verdictEl.textContent = '🤔 ZOPAの外ですが、BATNAは上回っています。慎重に判断してください。相手のBATNA見積もりを見直す余地があります。';
+  }
+
+  const adviceEl = document.getElementById('tactics-advice');
+  const advices = [];
+  if (tacticType.includes('統合型')) {
+    advices.push('• <strong>共通利益を探す</strong>: 価格以外の条件（支払い時期・追加サービス）で価値を創出しましょう');
+    advices.push('• <strong>情報交換</strong>: お互いの優先事項を開示し合うことで統合解を発見できます');
+    advices.push('• <strong>パッケージ交渉</strong>: 複数の条件を同時に議論してトレードオフを活用しましょう');
+  } else {
+    advices.push('• <strong>アンカリング</strong>: 最初のオファーを高めに設定し、相手の基準点を操作しましょう');
+    advices.push('• <strong>時間圧力の活用</strong>: 期限を設けることで相手の譲歩を引き出せます');
+    advices.push('• <strong>BATNA強化</strong>: 代替案を実際に増やすことで交渉力が向上します');
+  }
+  if (offer < aspiration) {
+    advices.push('• <strong>カウンターオファー目安</strong>: 希望値と現オファーの中間（' + Math.round((offer + aspiration) / 2 / 5) * 5 + '万円）から提示するのが一般的戦略です');
+  }
+  adviceEl.innerHTML = advices.map(a => '<div>' + a + '</div>').join(''); // xss-ok: developer-controlled HTML strings with <strong> + number values only
+
+  const saveData = { offer, myBatna, theirBatna, aspiration, importance };
+  localStorage.setItem(KEY, JSON.stringify(saveData));
+});
+
+const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+if (saved) {
+  if (saved.offer) { document.getElementById('current-offer').value = saved.offer; document.getElementById('offer-val').textContent = saved.offer; }
+  if (saved.myBatna) { document.getElementById('batna-value').value = saved.myBatna; document.getElementById('batna-val').textContent = saved.myBatna; }
+  if (saved.theirBatna) { document.getElementById('their-batna').value = saved.theirBatna; document.getElementById('their-batna-val').textContent = saved.theirBatna; }
+  if (saved.aspiration) { document.getElementById('aspiration').value = saved.aspiration; document.getElementById('aspiration-val').textContent = saved.aspiration; }
+  if (saved.importance) { document.getElementById('deal-importance').value = saved.importance; document.getElementById('importance-val').textContent = saved.importance; }
+}
+</script>
+</body>
+</html>
